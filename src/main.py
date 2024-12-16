@@ -32,6 +32,11 @@ class NetVoiceApp:
         """Start the NetVoice application"""
         self.console.print("\n[bold green]Welcome to NetVoice![/]")
         
+        # Show local IP addresses
+        self.console.print("\n[yellow]Your IP Addresses:[/]")
+        for ip in self._get_local_ips():
+            self.console.print(f"  {ip}")
+        
         # List available audio devices
         devices = self.audio_capture.list_input_devices()
         self.console.print("\n[yellow]Available Input Devices:[/]")
@@ -45,21 +50,32 @@ class NetVoiceApp:
         ))
         
         # Get network settings
-        local_port = int(Prompt.ask(
-            "Enter local port to listen on",
+        self.console.print("\n[bold]Network Setup[/]")
+        self.console.print("Choose the same port number on both computers")
+        port = int(Prompt.ask(
+            "Enter port number",
             default="5000"
         ))
         
-        target_host = Prompt.ask(
-            "Enter target IP address",
-            default="127.0.0.1"
+        mode = Prompt.ask(
+            "Are you [1] waiting for connection or [2] connecting to another computer",
+            choices=["1", "2"],
+            default="1"
         )
         
-        target_port = int(Prompt.ask(
-            "Enter target port",
-            default="5001"
-        ))
-        
+        if mode == "1":
+            self.console.print("[green]Waiting for incoming connection...[/]")
+            self.console.print("Share your IP address with the other computer")
+            target_host = "0.0.0.0"  # Listen on all interfaces
+            local_port = port
+            target_port = port
+        else:
+            target_host = Prompt.ask(
+                "Enter the IP address of the computer you want to connect to"
+            )
+            local_port = port
+            target_port = port
+            
         # Initialize network client
         self.voip_client = VoIPClient(port=local_port)
         self.target_address = (target_host, target_port)
@@ -121,6 +137,25 @@ class NetVoiceApp:
             self.audio_playback.add_audio(packet.audio_data)
         except Exception as e:
             logger.error(f"Error handling received audio: {e}")
+
+    def _get_local_ips(self):
+        """Get all local IP addresses"""
+        import socket
+        ips = []
+        try:
+            # Get all network interfaces
+            interfaces = socket.getaddrinfo(
+                host=socket.gethostname(),
+                port=None,
+                family=socket.AF_INET
+            )
+            # Extract unique IP addresses
+            ips = list(set(item[4][0] for item in interfaces))
+            # Filter out loopback
+            ips = [ip for ip in ips if not ip.startswith("127.")]
+        except Exception as e:
+            logger.error(f"Error getting IP addresses: {e}")
+        return ips or ["127.0.0.1"]
 
 def main():
     app = NetVoiceApp()
