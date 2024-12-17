@@ -23,7 +23,6 @@ class NetVoiceApp:
         self.console = Console()
         self.running = False
         
-        # Initialize components
         self.audio_capture = AudioCapture()
         self.audio_playback = AudioPlayback()
         self.voip_client = None  # Will be initialized when starting
